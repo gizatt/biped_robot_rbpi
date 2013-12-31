@@ -320,7 +320,7 @@ if __name__ == "__main__":
     res = optimize.fmin_slsqp(objective_func_sixdof, 
         [0.,0.,0.,0.,0.,0.],#[35.,-35.,-50.,0.,50.,0.], 
         [],
-        args=(targ_hl, test_planner), 
+        args=(targ_hl, test_planner),
         bounds=[(-60,60),(-60,60),(-60,60),(-60,60),(-60,60),(-60,60)],
         iter=1000000,
         iprint=1,
