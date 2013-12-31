@@ -11,8 +11,8 @@ import time
 #  side of body. Body parts are Ankle (A), Knee (K), and Hip (H).
 #  Side of body is Right or Left.
 #  Angles per joint are defined:
-#    Ankle: 0 degree is flat on ground. -90 is bottom of foot
-#    pointing outwards. 90 is bottom of foot pointing inwards.
+#    Ankle: 0 degree is flat on ground. 90 is bottom of foot
+#    pointing outwards. -90 is bottom of foot pointing inwards.
 #    (Due to frame of foot, angle of 90 or -90 can't actually be
 #    achieved without self-collision.)
 #    Knee: 0 degree is a straight knee. -90 is foot behind knee.
