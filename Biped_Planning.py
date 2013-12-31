@@ -87,7 +87,7 @@ class Biped_Kinematics:
         if (joint == 'ROOT'):
             return matrix([
                     [-1, 0, 0],
-                    [0, 1, 0],
+                    [0, -1, 0],
                     [0, 0, -1]
                           ])
         sign = self.joint_signs[joint]
@@ -285,8 +285,8 @@ if __name__ == "__main__":
         'AL' : 0,
         'KR' : 0,
         'KL' : 0,
-        'HR' : 0,
-        'HL' : 0
+        'HR' : 50,
+        'HL' : 50
     }
     test_angles_2 = {
         'AR' : 35,
@@ -296,11 +296,11 @@ if __name__ == "__main__":
         'HR' : 50,
         'HL' : 0
     }
-    out = test_planner.get_forward_kinematics_deg('AR', test_angles_2)
+    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
     for joint in test_planner.joints:
         print joint, ": ", out[joint]
 
-    exit 
+    sys.exit(0)
 
     print "Brute force testing a bunch of random angles..."
     random.seed()

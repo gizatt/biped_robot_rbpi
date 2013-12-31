@@ -9,18 +9,18 @@ hl = [1.5; 0; 1]
 
 ar_theta = 0
 al_theta = 0
-kr_theta = 0
-kl_theta = 0
+kr_theta = 50
+kl_theta = 50
 hr_theta = 0
 hl_theta = 0
 
 % Stable stand on right foot
-ar_theta = 35
-al_theta = -35
-kr_theta = -50
-kl_theta = 0
-hr_theta = 50
-hl_theta = 0
+% ar_theta = 35
+% al_theta = -35
+% kr_theta = -50
+% kl_theta = 0
+% hr_theta = 50
+% hl_theta = 0
 
 % Convert to rads
 ar_theta = ar_theta * pi / 180;
@@ -74,7 +74,7 @@ hl_rot_down = [1, 0, 0;
 % I don't really understand why it gets flipped
 % exactly like this yet?
 root_rot = [-1, 0, 0;
-          0, 1, 0;
+          0, -1, 0;
           0, 0, -1];
       
 fprintf('In right ankle frame:')
