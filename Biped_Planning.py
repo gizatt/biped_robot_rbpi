@@ -254,11 +254,8 @@ def objective_func_sixdof(angs, targ_al, test_planner):
         'HR' : angs[4],
         'HL' : angs[5]
     }
-    print "Angles: ", angs
     out = test_planner.get_forward_kinematics_deg('AR', test_angles)
-    print "Out: ", out['AL']
     err = linalg.norm(out['AL']-targ_hl)
-    print "Err: ", err
     return err
 def ground_constraint(angs, targ_al, test_planner):
     ''' Returns 0 when all joints above ground.'''
