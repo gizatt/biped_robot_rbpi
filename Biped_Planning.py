@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
-import time
+import time, random
 from numpy import *
 import scipy as Sci
 import scipy.linalg
+from scipy import optimize
 
 #******************************************************************************
 # Biped Planner - Motion-level planning & control
@@ -58,6 +59,20 @@ class Biped_Kinematics:
         'HL' : 'x'
     }
     
+    # Whether we need to flip angle on rotation
+    # axis for the given joint. (some of their
+    # positive angle directions are defined in
+    # silly directions... this should eventually
+    # be fixed)
+    joint_signs = {
+        'AR' : 1.,
+        'AL' : 1.,
+        'KR' : -1.,
+        'KL' : -1.,
+        'HR' : -1.,
+        'HL' : -1.
+    }
+
     def __init__(self, debug=False):
         # No real init to do, this class mostly
         # wraps math to do on the fly...
@@ -75,6 +90,8 @@ class Biped_Kinematics:
                     [0, 1, 0],
                     [0, 0, -1]
                           ])
+        sign = self.joint_signs[joint]
+        angle = angle * sign
         if self.joint_axis[joint] == 'x':
             return matrix([
                     [1, 0, 0],
@@ -109,7 +126,8 @@ class Biped_Kinematics:
         if (joint not in self.joints):
             print "Invalid joint."
             return
-        if (len(angles) != len(self.joints)-1):
+        if (len(angles) != len(self.joints)-1 and
+            len(angles) != len(self.joints)):
             print "Invalid # of angles."
             return
 
@@ -198,16 +216,12 @@ class Biped_Kinematics:
             # joint back to the origin. Equivalently,
             # the ascending rotation for the last joint
             # times the last rot used. 
-            print "Going into ", i, " state ", state
-            print "Dict: "
-            print ret_dict
             if (state == 'asc'):
                 last_rot = last_rot* \
                     self.get_rot_for_joint_ascending(self.joints[i-1],
                         angles[self.joints[i-1]])
                 ret_dict[self.joints[i]] = \
                     last_pos + last_rot*self.link_lengths[self.joints[i-1]]
-                print "Last rot: ", last_rot, "last pos: ", last_pos
             else:
             # If we're descending, same deal, but now we
             # use link length from THIS joint.
@@ -230,6 +244,39 @@ class Biped_Kinematics:
             angles[key] = angles[key]*pi/180.
         return self.get_forward_kinematics(joint, angles)
 
+def objective_func_sixdof(angs, targ_al, test_planner):
+    ''' Messy, temporary tests of optimization library. '''
+    test_angles = {
+        'AR' : angs[0],
+        'AL' : angs[1],
+        'KR' : angs[2],
+        'KL' : angs[3],
+        'HR' : angs[4],
+        'HL' : angs[5]
+    }
+    print "Angles: ", angs
+    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
+    print "Out: ", out['AL']
+    err = linalg.norm(out['AL']-targ_hl)
+    print "Err: ", err
+    return err
+def ground_constraint(angs, targ_al, test_planner):
+    ''' Returns 0 when all joints above ground.'''
+    test_angles = {
+        'AR' : angs[0],
+        'AL' : angs[1],
+        'KR' : angs[2],
+        'KL' : angs[3],
+        'HR' : angs[4],
+        'HL' : angs[5]
+    }
+    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
+    outval = 0.0
+    for ang in out.keys():
+        if out[ang][2] <= 0:
+            outval += -1*float(out[ang][2])
+    return outval
+
 # Test code if this file is being run and not imported
 if __name__ == "__main__":
     test_planner = Biped_Kinematics(debug=True)
@@ -241,7 +288,53 @@ if __name__ == "__main__":
         'HR' : 0,
         'HL' : 0
     }
-    print test_angles
-    out = test_planner.get_forward_kinematics_deg('ROOT', test_angles)
+    test_angles_2 = {
+        'AR' : 35,
+        'AL' : -35,
+        'KR' : -50,
+        'KL' : 0,
+        'HR' : 50,
+        'HL' : 0
+    }
+    out = test_planner.get_forward_kinematics_deg('AR', test_angles_2)
     for joint in test_planner.joints:
         print joint, ": ", out[joint]
+
+    exit 
+
+    print "Brute force testing a bunch of random angles..."
+    random.seed()
+    iters = 1000
+    starttime = time.clock()
+    for i in xrange(0, iters, 1):
+        for angle in test_angles.keys():
+            test_angles[angle] = random.randint(-90, 90)
+        test_planner.get_forward_kinematics_deg('ROOT', test_angles)
+    tottime = time.clock() - starttime
+    print "Done: ", iters, " in ", tottime, " seconds"
+    print "i.e. ", iters/tottime, " per sec"
+
+    print "Trying a minimization"
+    targ_hl = matrix([[-2.9],[-1.8],[1.0]])
+    print "Target: ", targ_hl
+    res = optimize.fmin_slsqp(objective_func_sixdof, 
+        [0.,0.,0.,0.,0.,0.],#[35.,-35.,-50.,0.,50.,0.], 
+        [],
+        args=(targ_hl, test_planner), 
+        bounds=[(-60,60),(-60,60),(-60,60),(-60,60),(-60,60),(-60,60)],
+        iter=1000000,
+        iprint=1,
+        epsilon=1.0)
+    print "Results:", res
+
+    print "\n\n generates:"
+    test_angles = {
+        'AR' : res[0],
+        'AL' : res[1],
+        'KR' : res[2],
+        'KL' : res[3],
+        'HR' : res[4],
+        'HL' : res[5]
+    }
+    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
+    print "AL: ", out['AL']
