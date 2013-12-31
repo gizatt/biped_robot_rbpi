@@ -254,11 +254,8 @@ def objective_func_sixdof(angs, targ_al, test_planner):
         'HR' : angs[4],
         'HL' : angs[5]
     }
-    print "Angles: ", angs
     out = test_planner.get_forward_kinematics_deg('AR', test_angles)
-    print "Out: ", out['AL']
-    err = linalg.norm(out['AL']-targ_hl)
-    print "Err: ", err
+    err = linalg.norm(out['AL']-targ_al)
     return err
 def ground_constraint(angs, targ_al, test_planner):
     ''' Returns 0 when all joints above ground.'''
@@ -315,12 +312,12 @@ if __name__ == "__main__":
     print "i.e. ", iters/tottime, " per sec"
 
     print "Trying a minimization"
-    targ_hl = matrix([[-2.9],[-1.8],[1.0]])
+    targ_al = matrix([[-2.9],[-1.8],[1.0]])
     print "Target: ", targ_hl
     res = optimize.fmin_slsqp(objective_func_sixdof, 
         [0.,0.,0.,0.,0.,0.],#[35.,-35.,-50.,0.,50.,0.], 
         [],
-        args=(targ_hl, test_planner),
+        args=(targ_al, test_planner),
         bounds=[(-60,60),(-60,60),(-60,60),(-60,60),(-60,60),(-60,60)],
         iter=1000000,
         iprint=1,

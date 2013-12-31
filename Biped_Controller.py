@@ -64,7 +64,7 @@ if __name__ == "__main__":
     print "Spawning biped controller"
     test_controller = Biped_Controller(debug=True)
 
-    TIMESTEP = 10
+    TIMESTEP = 0.25
     
     try:
         print "Crouching"
