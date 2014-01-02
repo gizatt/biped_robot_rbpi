@@ -31,7 +31,7 @@ try:
 
     while (True):
         print "Standing to right foot"
-        next_step = { 'AR': 35, 'KR': -50, 'HR': 50,
+        next_step = { 'AR': 30, 'KR': -50, 'HR': 50,
                       'AL': -35, 'KL': 0, 'HL': 0 }
         test_controller.go_to_pose(2, next_step, False)
         time.sleep(2)
@@ -42,14 +42,14 @@ try:
         
         print "Balancing, pushing left leg forward"
         curr_pose = test_controller.get_pose()
-        push_pose = { 'AL': 0, 'KR': 40, 'HR': -40, 'KL':-40, 'HL': 40}
-        test_controller.balance_on_leg(['AR'], [1], 25, \
+        push_pose = { 'AL': 0, 'KR': 50, 'HR': -50, 'KL':-30, 'HL': 30}
+        test_controller.balance_on_leg(['AR'], [1], 20, \
             ['KR', 'HR'], [-1, -1], 0, push_pose)
         start_time = time.time()
         while (time.time() < start_time+4):
             curr_pose = test_controller.get_pose()
-            push_pose = { 'AL': 0, 'KR': 40, 'HR': -40, 'KL':-40-(curr_pose['KR']-40), 'HL': 40+(-40-curr_pose['HR'])}
-            test_controller.balance_on_leg(['AR'], [1], 25, \
+            push_pose = { 'AL': 0, 'KR': 50, 'HR': -50, 'KL':-40-(curr_pose['KR']-40), 'HL': 40+(-40-curr_pose['HR'])}
+            test_controller.balance_on_leg(['AR'], [1], 30, \
                 ['KR', 'HR'], [-1, -1], 0, push_pose)
 
         #print "Planning right step"
@@ -67,7 +67,7 @@ try:
         time.sleep(2)
 
         print "Standing to left foot"
-        next_step = { 'AL': 35, 'KL': -50, 'HL': 50,
+        next_step = { 'AL': 30, 'KL': -50, 'HL': 50,
                       'AR': -35, 'KR': 0, 'HR': 0 }
         test_controller.go_to_pose(2, next_step, False)
         time.sleep(2)
@@ -77,14 +77,14 @@ try:
         time.sleep(2)
         
         print "Balancing, pushing right leg forward"
-        push_pose = { 'AR': 0, 'KL': 40, 'HL': -40, 'KR':-40, 'HR': 40}        
-        test_controller.balance_on_leg(['AL'], [-1], -25, \
+        push_pose = { 'AR': 0, 'KL': 50, 'HL': -50, 'KR':-30, 'HR': 30}        
+        test_controller.balance_on_leg(['AL'], [-1], -20, \
             ['KL', 'HL'], [-1, -1], 0, push_pose)
         start_time = time.time()
         while (time.time() < start_time+4):
             curr_pose = test_controller.get_pose()
-            push_pose = { 'AR': 0, 'KL': 40, 'HL': -40, 'KR':-40-(curr_pose['KL']-40), 'HR': 40+(-40-curr_pose['HL'])}
-            test_controller.balance_on_leg(['AL'], [-1], -25, \
+            push_pose = { 'AR': 0, 'KL': 50, 'HL': -50, 'KR':-40-(curr_pose['KL']-40), 'HR': 40+(-40-curr_pose['HL'])}
+            test_controller.balance_on_leg(['AL'], [-1], -30, \
                 ['KL', 'HL'], [-1, -1], 0, push_pose)
 
         #print "Planning left step"
