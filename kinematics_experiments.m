@@ -7,10 +7,10 @@ kl = [0; 0; 2.4]
 hr = [-1.5; 0; 1]
 hl = [1.5; 0; 1]
 
-ar_theta = 0
+ar_theta = 10
 al_theta = 0
-kr_theta = 50
-kl_theta = 50
+kr_theta = 45
+kl_theta = 45
 hr_theta = 0
 hl_theta = 0
 

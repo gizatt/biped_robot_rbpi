@@ -24,28 +24,11 @@ def objective_func_sixdof(angs, targ_al, test_planner):
     err = linalg.norm(out['AL']-targ_al)
     #emphasize sparsity on the hip joints
     err += 0.01*abs(angs[4]) + 0.01*abs(angs[5])
-    #and flatness of feet?
-    #err += 1.0*abs( angs[2]-angs[3]+angs[4]-angs[5]+angs[0]-angs[1])
     #and add in heavy penalty for clipping ground
     diff = abs(linalg.norm(cross(transpose(out['KL']-out['AL']), matrix([[0,0,1]]))))
     err += 0.1*diff
 
     return err
-def ground_constraint_r(angs, targ_al, test_planner):
-    ''' Returns 0 when all joints above ground.'''
-    test_angles = {
-        'AR' : angs[0],
-        'AL' : angs[1],
-        'KR' : angs[2],
-        'KL' : angs[3],
-        'HR' : angs[4],
-        'HL' : angs[5]
-    }
-    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
-    # Depending on the angle of the foot, the ground clearance
-    # requirement differs.
-    diff = abs(linalg.norm(cross(transpose(out['KR']-out['AR']), matrix([[0,0,1]]))))
-    return float(out['AR'][2])-diff
 
 def ground_constraint_l(angs, targ_al, test_planner):
     ''' Returns 0 when all joints above ground.'''
