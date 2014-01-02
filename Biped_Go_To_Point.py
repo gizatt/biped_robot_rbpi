@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from Biped_Controller import Biped_Controller
-from Biped_Planning import Biped_Kinematics
+from Biped_Planning import Biped_Kinematics, Biped_Planning_6DOF
 import time
 import traceback
 import sys
@@ -85,49 +85,20 @@ try:
     next_step = { 'AR': 0, 'KR': -30, 'HR': 30,
                   'AL': 0, 'KL': -30, 'HL': 30 }
     test_controller.go_to_pose(1, next_step, False)
+    time.sleep(1)
     print "Standing to right foot"
     next_step = { 'AR': 35, 'KR': -50, 'HR': 50,
                   'AL': -35, 'KL': 0, 'HL': 0 }
     test_controller.go_to_pose(3, next_step, False)
-
+    time.sleep(1)
+    
     print "Spawning kinematics object"
-    test_planner = Biped_Kinematics(debug=True)
+    test_planner = Biped_Planning_6DOF()
 
     print "Trying a minimization"
     targ_al = matrix([[x],[y],[z]])
     print "Target: ", targ_al
-    res = optimize.fmin_slsqp(objective_func_sixdof, 
-        [0.,0.,0.,0.,0.,0.],#[35.,-35.,-50.,0.,50.,0.], 
-        ieqcons = [ground_constraint_l],
-        args=(targ_al, test_planner),
-        bounds=[(-45,45),(-45,45),(-60,60),(-60,60),(-45,45),(-45,45)],
-        iter=1000000,
-        iprint=1,
-        acc=0.0001,
-        epsilon=0.15)
-    print "Results:", res
-
-    print "\n\n generates:"
-    test_angles = {
-        'AR' : res[0],
-        'AL' : res[1],
-        'KR' : res[2],
-        'KL' : res[3],
-        'HR' : res[4],
-        'HL' : res[5]
-    }
-    out = test_planner.get_forward_kinematics_deg('AR', test_angles)
-    print "AL: ", out['AL']
-
-    print "Going to...:"
-    test_angles = {
-        'AR' : res[0],
-        'AL' : res[1],
-        'KR' : res[2],
-        'KL' : res[3],
-        'HR' : res[4],
-        'HL' : res[5]
-    }
+    test_angles = test_planner.figure_out_pose('AR', 'AL', targ_al, debug=True)
     print test_angles
     test_controller.go_to_pose(5, test_angles, False)
 
@@ -140,38 +111,8 @@ try:
                 test_angles['HR'], test_angles['HL']]
         targ_al_diff = targ_al + matrix([[0.0],[2.*sin(t)],[0.0]])
         print "\n\nTarget: ", targ_al_diff
-        res = optimize.fmin_slsqp(objective_func_sixdof, 
-            last,
-            ieqcons = [ground_constraint_l],
-            args=(targ_al_diff, test_planner),
-            bounds=[(-45,45),(-45,45),(-60,60),(-60,60),(-45,45),(-45,45)],
-            iter=1000,
-            iprint=0,
-            acc=0.0001,
-            epsilon=0.10)        
-        #print "Results:", res
-
-        #print "\n\n generates:"
-        test_angles = {
-            'AR' : res[0],
-            'AL' : res[1],
-            'KR' : res[2],
-            'KL' : res[3],
-            'HR' : res[4],
-            'HL' : res[5]
-        }
-        out = test_planner.get_forward_kinematics_deg('AR', test_angles)
-        print "AL: ", out['AL']
-        
-        #print "Going to...:"
-        test_angles = {
-            'AR' : res[0],
-            'AL' : res[1],
-            'KR' : res[2],
-            'KL' : res[3],
-            'HR' : res[4],
-            'HL' : res[5]
-        }
+        test_angles = test_planner.figure_out_pose('AR', 'AL', targ_al_diff, debug=True)
+        print "Going to: ", test_angles
         test_controller.go_to_pose(0.5, test_angles, False)
         steps.append(test_angles)
 
