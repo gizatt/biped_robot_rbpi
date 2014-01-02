@@ -268,7 +268,8 @@ class Biped_Controller :
         ''' Clean up threads '''
         self.keep_running = False
         time.sleep(0.5)
-
+        self.relax()
+        
     def simple_walk_cycle_biped(self, TIMESTEP):
         ''' Performs open-loop walking cycle.'''
         print "Crouching"
