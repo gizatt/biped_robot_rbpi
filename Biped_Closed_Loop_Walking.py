@@ -107,4 +107,6 @@ except:
     traceback.print_exc()
 finally:
     print "Relaxing"
-    test_controller.relax()
+    test_controller.__del__()
+    time.sleep(1)
+        
