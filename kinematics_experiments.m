@@ -11,7 +11,7 @@ ar_theta = 10
 al_theta = 0
 kr_theta = 45
 kl_theta = 45
-hr_theta = 0
+hr_theta = -45
 hl_theta = 0
 
 % Stable stand on right foot

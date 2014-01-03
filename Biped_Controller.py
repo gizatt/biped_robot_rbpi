@@ -52,8 +52,10 @@ class Biped_Controller :
     balance_forward_ierr = None
     # P and I constants
     balance_i = 0.001
-    balance_p = 0.025
-    
+    balance_p = 0.015
+    # balance gradient: "desired" angles while balancing
+    balance_gradient = None
+    balance_grad_k = 0.03
     # Threads
     imu_thread = None
     pose_thread = None
@@ -102,95 +104,121 @@ class Biped_Controller :
         
     def update_pose(self, update_rate, debug=False):
         ''' Parallel thread for pose following. '''
-        while self.keep_running:
-            # If we're on our way to a pose goal...
-            self.curr_pose_goal_lock.acquire()
-            if (self.curr_pose_goal != None):
-                # Adopt appropriate intermediate pose
-                # based on current time
-                dur = self.curr_pose_goal_tend-self.curr_pose_goal_tstart
-                frac = (time.time()-self.curr_pose_goal_tstart)/dur
-                
-                # Are we done?
-                if (frac < 1.):
+        try:
+            while self.keep_running:
+                # If we're on our way to a pose goal...
+                self.curr_pose_goal_lock.acquire()
+                if (self.curr_pose_goal != None):
+                    # Adopt appropriate intermediate pose
+                    # based on current time
+                    dur = self.curr_pose_goal_tend-self.curr_pose_goal_tstart
+                    frac = (time.time()-self.curr_pose_goal_tstart)/dur
+                    
+                    # Are we done?
+                    if (frac < 1.):
+                        for servo in self.walker.servos:
+                            interp_ang = frac*float(self.curr_pose_goal[servo]) + \
+                                (1.-frac)*float(self.curr_pose_long[servo])
+                            self.walker.set_angle(servo, interp_ang, debug)
+                            self.curr_pose_short[servo] = interp_ang
+                    else:
+                        #Done!
+                        self.curr_pose_goal = None
+                        for servo in self.walker.servos:
+                            self.curr_pose_long[servo] = self.curr_pose_short[servo]
+                        self.curr_pose_goal_tstart = None
+                        self.curr_pose_goal_tend = None
+                    
+                # Or currently balancing
+                elif (self.curr_balance_goal != None):
+
+                    # Push along gradient toward desired goal
+                    if (self.balance_gradient != None):
+                        for servo in self.balance_gradient:
+                            curr = self.curr_pose_short[servo]
+                            err = self.balance_gradient[servo]-curr
+                            new = curr+err*self.balance_grad_k
+                            self.curr_pose_short[servo] = new
+                            self.walker.set_angle(servo, new, debug)
+                        
+                    # Feedback control in both dimensions using
+                    # stored joints
+
+                    # Horizontal:
+                    horiz_err = self.curr_balance_goal[0]- self.rpy[0]
+                    self.balance_horiz_ierr = self.balance_horiz_ierr*0.5 + horiz_err
+                    for i in range(len(self.balance_horiz_joints)):
+                        self.curr_pose_short[self.balance_horiz_joints[i]] += \
+                            self.balance_horiz_factors[i]*(
+                            self.balance_p*horiz_err + \
+                            self.balance_i*self.balance_horiz_ierr)
+                        self.walker.set_angle(self.balance_horiz_joints[i],
+                            self.curr_pose_short[self.balance_horiz_joints[i]], debug)
+
+                    # Forward/back:
+                    forward_err = self.curr_balance_goal[1] - self.rpy[1]
+                    self.balance_forward_ierr = self.balance_forward_ierr*0.5 + forward_err
+                    for i in range(len(self.balance_horiz_joints)):
+                        self.curr_pose_short[self.balance_forward_joints[i]] += \
+                            self.balance_forward_factors[i]*(
+                            self.balance_p*forward_err + \
+                            self.balance_i*self.balance_forward_ierr)
+                        self.walker.set_angle(self.balance_forward_joints[i],
+                            self.curr_pose_short[self.balance_forward_joints[i]], debug)
+
+                    # Copy over to perm storage:
                     for servo in self.walker.servos:
-                        interp_ang = frac*float(self.curr_pose_goal[servo]) + \
-                            (1.-frac)*float(self.curr_pose_long[servo])
-                        self.walker.set_angle(servo, interp_ang, debug)
-                        self.curr_pose_short[servo] = interp_ang
-                else:
-                    #Done!
-                    self.curr_pose_goal = None
-                    for servo in self.walker.servos:
-                        self.curr_pose_long[servo] = self.curr_pose_short[servo]
-                    self.curr_pose_goal_tstart = None
-                    self.curr_pose_goal_tend = None
-                
-            # Or currently balancing
-            elif (self.curr_balance_goal != None):
-                # Feedback control in both dimensions using
-                # stored joints
-
-                # Horizontal:
-                horiz_err = self.curr_balance_goal[0]- self.rpy[0]
-                self.balance_horiz_ierr = self.balance_horiz_ierr*0.5 + horiz_err
-                for i in range(len(self.balance_horiz_joints)):
-                    self.curr_pose_short[self.balance_horiz_joints[i]] += \
-                        self.balance_horiz_factors[i]*(
-                        self.balance_p*horiz_err + \
-                        self.balance_i*self.balance_horiz_ierr)
-                    self.walker.set_angle(self.balance_horiz_joints[i],
-                        self.curr_pose_short[self.balance_horiz_joints[i]], debug)
-
-                # Forward/back:
-                forward_err = self.curr_balance_goal[1] - self.rpy[1]
-                self.balance_forward_ierr = self.balance_forward_ierr*0.5 + forward_err
-                for i in range(len(self.balance_horiz_joints)):
-                    self.curr_pose_short[self.balance_forward_joints[i]] += \
-                        self.balance_forward_factors[i]*(
-                        self.balance_p*forward_err + \
-                        self.balance_i*self.balance_forward_ierr)
-                    self.walker.set_angle(self.balance_forward_joints[i],
-                        self.curr_pose_short[self.balance_forward_joints[i]], debug)
-
-            self.curr_pose_goal_lock.release()
-            time.sleep(update_rate)
+                            self.curr_pose_long[servo] = self.curr_pose_short[servo]
+                            
+                self.curr_pose_goal_lock.release()
+                time.sleep(update_rate)
+        except:
+            print "Error in pose thread."
+            traceback.print_exc()
+        finally:
+            self.relax()
         
     def update_imu(self, update_rate, debug=False):
         ''' Parallel thread for imu tracking. '''
-        # If we have an IMU...
-        time_last = time.time()
-        i=0
-        sumg = np.array([0.0,0.0,0.0])
-        while (self.keep_running):
-            if (self.imu != None):
-                rp = self.read_rp_from_imu_acc(debug=debug)
-                rpy = np.array([rp[0],rp[1],0]) - self.rpy_0
-                # And read similar dat from gyro
-                gyr = np.array(self.imu.read_gyro())
-                # (flip x and y axes on gyro)
-                gyr = np.array([gyr[1], gyr[0], gyr[2]])
-                
-                elapsed = time.time()-time_last
-                time_last = time.time()
+        try:
+            # If we have an IMU...
+            time_last = time.time()
+            i=0
+            sumg = np.array([0.0,0.0,0.0])
+            while (self.keep_running):
+                if (self.imu != None):
+                    rp = self.read_rp_from_imu_acc(debug=debug)
+                    rpy = np.array([rp[0],rp[1],0]) - self.rpy_0
+                    # And read similar dat from gyro
+                    gyr = np.array(self.imu.read_gyro())
+                    # (flip x and y axes on gyro)
+                    gyr = np.array([gyr[1], gyr[0], gyr[2]])
+                    
+                    elapsed = time.time()-time_last
+                    time_last = time.time()
 
-                # Average over time to remove noise
-                self.l_a_rpy = (0.5*self.l_a_rpy + \
-                    0.5*rpy)
-                self.l_g_rpy = (0.1*self.l_g_rpy + \
-                    0.9*gyr)
+                    # Average over time to remove noise
+                    self.l_a_rpy = (0.5*self.l_a_rpy + \
+                        0.5*rpy)
+                    self.l_g_rpy = (0.1*self.l_g_rpy + \
+                        0.9*gyr)
 
-                # And filter together to get rpy est
-                # Use gyro to predict where we should be
-                pred_rpy = self.rpy + elapsed*self.l_g_rpy
-                sumg += elapsed*self.l_g_rpy
-                
-                # Weigh that against absolute reference from acc
-                self.rpy = 0.5*(self.l_a_rpy) + \
-                    0.5*pred_rpy
+                    # And filter together to get rpy est
+                    # Use gyro to predict where we should be
+                    pred_rpy = self.rpy + elapsed*self.l_g_rpy
+                    sumg += elapsed*self.l_g_rpy
+                    
+                    # Weigh that against absolute reference from acc
+                    self.rpy = 0.5*(self.l_a_rpy) + \
+                        0.5*pred_rpy
 
-                time.sleep(update_rate)
-
+                    time.sleep(update_rate)
+        except:
+            print "Error in IMU thread:"
+            traceback.print_exc()
+        finally:
+            self.relax()
+            
     def read_rp_from_imu_acc(self, debug=False):
         # Read in acc from imu
         acc = np.array(self.imu.read_accel())
@@ -244,7 +272,7 @@ class Biped_Controller :
 
     def balance_on_leg(self, horiz_joints, horiz_joint_factors,
             horiz_target, forward_joints, forward_joint_factors,
-            forward_target):
+            forward_target, balance_gradient=None):
         ''' Closed-loop balance utilizing horiz_joints
             for left/right balance, forward_joints for
             forward/back balance. Sign dictates whether
@@ -252,18 +280,41 @@ class Biped_Controller :
             or decreases angle toward the target. '''
         self.curr_pose_goal_lock.acquire()
         self.curr_pose_goal = None
+        for servo in self.walker.servos:
+            self.curr_pose_long[servo] = self.curr_pose_short[servo]
         self.curr_balance_goal = [horiz_target, forward_target]
         self.balance_horiz_joints = horiz_joints
         self.balance_horiz_factors = horiz_joint_factors
         self.balance_forward_joints = forward_joints
         self.balance_forward_factors = forward_joint_factors
+        self.balance_gradient = balance_gradient
 
         # No integral error yet
         self.balance_forward_ierr = 0.
         self.balance_horiz_ierr = 0.
         
         self.curr_pose_goal_lock.release()
+
+    def push_toward_goal(self, goal_pose, factor, debug=False):
+        ''' For a set of servos, push the system n% of the way
+        to that goal. If we're pursuing a pose goal, cancels. '''
+        self.curr_pose_goal_lock.acquire()
+        if (self.curr_pose_goal != None):
+            self.curr_pose_goal = None
+        for servo in goal_pose.keys():
+            curr = self.curr_pose_short[servo]
+            new = goal_pose[servo]*factor + curr*(1-factor)
+            self.curr_pose_short[servo] = new
+            self.curr_pose_long[servo] = new
+            self.walker.set_angle(servo, new, debug)
+        self.curr_pose_goal_lock.release()
         
+    def get_pose(self):
+        new_pose = {}
+        for servo in self.walker.servos:
+            new_pose[servo] = self.curr_pose_short[servo]
+        return new_pose
+
     def __del__(self):
         ''' Clean up threads '''
         self.keep_running = False
@@ -271,7 +322,8 @@ class Biped_Controller :
         self.relax()
         
     def simple_walk_cycle_biped(self, TIMESTEP):
-        ''' Performs open-loop walking cycle.'''
+        ''' Performs open-loop walking cycle. Assumes
+            3-joint legs (HR/L, AR/L, KR/L) '''
         print "Crouching"
         next_step = { 'AR': 0, 'KR': -30, 'HR': 30,
                       'AL': 0, 'KL': -30, 'HL': 30 }
@@ -364,12 +416,15 @@ if __name__ == "__main__":
         test_controller.balance_on_leg(['AR'], [1], 30, \
             ['KR', 'HR'], [-1, -1], 0)
 
-        test_controller.balance_on_leg(['AL'], [-1.], -30, \
-            ['KL', 'HL'], [-1, -1], 0)
+        # This would perform balance on left foot
+        #test_controller.balance_on_leg(['AL'], [-1.], -30, \
+        #    ['KL', 'HL'], [-1, -1], 0)
         
         while (True):
+            #spinspinspin
             pass
         
+        # This would do the walk cycle
         #test_controller.simple_walk_cycle(TIMESTEP)
         
     except:

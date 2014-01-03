@@ -86,10 +86,10 @@ class Biped_Robot :
 
         self.servo_pins['HR'] = 2
         self.servo_calib['HR'] = (645, 380)
-        self.servo_limits['HR'] = (-45, 60)
+        self.servo_limits['HR'] = (-60, 60)
         self.servo_pins['HL'] = 6
         self.servo_calib['HL'] = (150, 385)
-        self.servo_limits['HL'] = (-45, 60)
+        self.servo_limits['HL'] = (-60, 60)
 
         # Calculate servo translation values.
         for servo in self.servos:
