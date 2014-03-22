@@ -1,7 +1,35 @@
-
+%%
 angles = [0 0 0 0 0 0];
-trans = get_forward_kin(angles);
+[trans, jac] = get_forward_kin(angles);
+trans{6}
+jac
 
+%%
+% Some simple prototype inverse kin
+pos_target = [3.0; 3.0; 3.0];
+guess = rand([1,6])*90-45;
+[trans, jac] = get_forward_kin(guess);
+result = trans{end}*[0; 0; 0; 1];
+err = (result(1:3) - pos_target(1:3))
+olderr = err;
+delta_err = [Inf; Inf; Inf]
+
+%%
+iters = 0;
+while (norm(err) > 0.01 && norm(delta_err) ~= 0)
+    guess = guess - (0.1*jac.'*err).';
+    [trans, jac] = get_forward_kin(guess);
+    result = trans{end}*[0; 0; 0; 1];
+    err = (result(1:3) - pos_target(1:3));
+    delta_err = err - olderr;
+    olderr = err;
+    iters = iters + 1
+end
+
+err
+iters
+
+%%
 % Visualize;
 close all;
 figure;
@@ -15,7 +43,7 @@ for i=1:length(trans)-1
 end
 %axis([-5 5 -5 5 -1 9])
 
-% Visualize workspace:
+%% Visualize workspace:
 % limits (going aroudn from left ankle)
 joints_limits_deg = [-45, 45; -90 90; -60 60; -60 60; -90 90; -45 45];
 joints_limits = joints_limits_deg * pi / 180;
