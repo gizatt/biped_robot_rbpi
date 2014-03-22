@@ -66,8 +66,8 @@ R_kl_hl = [kl_rot kl_rot*knee_to_hip; 0 0 0 1];
 R_hl_hr = [hl_rot hl_rot*hip_to_hip; 0 0 0 1];
 R_hr_kr = [hr_rot -hr_rot*knee_to_hip; 0 0 0 1];
 R_kr_ar = [kr_rot -kr_rot*ankle_to_knee; 0 0 0 1];
-% (right ankle angle doesn't matter here)
-l_transforms = {R_al_kl, R_kl_hl, R_hl_hr, R_hr_kr, R_kr_ar};
+R_ar = [ar_rot [0;0;0]; 0 0 0 1];
+l_transforms = {R_al_kl, R_kl_hl, R_hl_hr, R_hr_kr, R_kr_ar, R_ar};
 
 % Generate transforms to each other joint
 transform = eye(4);
@@ -83,13 +83,13 @@ trans{end} = transform;
 % revolution and the vec from the joint to the end effector we care
 % about.
 % (see http://graphics.cs.cmu.edu/nsp/course/15-464/Fall09/handouts/IK.pdf)
-% jac = [];
-% end_pos = trans{end}*[0;0;0;1];
-% for i=1:length(trans)
-%     axis_pos = trans{i}*[0;0;0;1];
-%     axis_dir = trans{i}*[axes{i}(1:3).'; 1];
-%     jac = [jac; cross(axis_dir(1:3), end_pos(1:3)-axis_pos(1:3))];
-% end
-jac = 0;
+jac = [];
+end_pos = trans{end}*[0;0;0;1];
+
+for i=1:length(trans)
+    axis_pos = trans{i}*[0;0;0;1];
+    axis_dir = trans{i}*[axes{i}(1:3).'; 1];
+    jac = [jac cross(axis_dir(1:3), end_pos(1:3)-axis_pos(1:3))];
+end
 
 end
