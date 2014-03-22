@@ -17,7 +17,7 @@ test_controller = Biped_Controller()
 try:
     test_planner = Biped_Planning_6DOF()
     print "Trying to find way to get to ", goal
-    targ = test_planner.inverse_kin_left_leg(goal, maxattempts = 4, alpha=0.8, alphadecay=0.995, delta_eps = 0.02)
+    targ = test_planner.inverse_kin_left_leg(goal, maxattempts = 1, alpha=0.8, reg=0.00, alphadecay=0.999, delta_eps = 0.001)
     print "Got it -- going to"
     print targ
     test_controller.go_to_pose(0.5, targ)

@@ -154,7 +154,7 @@ class Biped_Planning_6DOF:
         self.kin_model = Biped_Kinematics(debug)
         random.seed()
         
-    def inverse_kin_left_leg(self, target_pos, maxattempts=1, alpha=1.0, alphadecay = 1.0, eps=0.01, delta_eps=0.001):
+    def inverse_kin_left_leg(self, target_pos, maxattempts=1, alpha=1.0, alphadecay = 1.0, reg = 0.0, eps=0.01, delta_eps=0.001):
         ''' Given a target pos (in frame of left ankle),
             returns dict of joint angles that hopefully
             get close to the desired position. Target_pos
@@ -162,7 +162,8 @@ class Biped_Planning_6DOF:
         
         # Generate a guess
         print maxattempts
-        for attempt in range(1, maxattempts):
+        for attempt in range(1, maxattempts+1):
+            attempts = 1
             guess_angles = {
                 'AR' : random.uniform(-45., 45.),
                 'AL' : random.uniform(-45., 45.),
@@ -186,7 +187,7 @@ class Biped_Planning_6DOF:
                 update_guess = alpha*transpose((transpose(jac)*err))
                 for i in range(0, len(self.kin_model.joints)):
                     j = self.kin_model.joints[i]
-                    guess_angles[j] = guess_angles[j] - update_guess.item(i)
+                    guess_angles[j] = guess_angles[j] - update_guess.item(i) - reg*guess_angles[j]
                     # constrain within joint limits
                     guess_angles[j] = sorted((self.kin_model.joint_limits[j][0], 
                         guess_angles[j], self.kin_model.joint_limits[j][1]))[1]
@@ -204,6 +205,7 @@ class Biped_Planning_6DOF:
                 if (linalg.norm(err) < pocket_err):
                     pocket_err = linalg.norm(err)
                     pocket = deepcopy(guess_angles)
+                attempts = attempts + 1
         
             if (attempt == 1):
                 best_guess = deepcopy(pocket)
@@ -215,6 +217,7 @@ class Biped_Planning_6DOF:
             print "Best yet: "
             print best_guess
             print "Err: ", best_err
+            print "Attempts: ", attempts
                 
         print "\n\n\n Returning:"
         print best_guess
